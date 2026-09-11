@@ -37,6 +37,7 @@ def get_default_schedule_data():
             2, 2, 1, 2, 2, 2, 2
         ],
         "勝": [0] * 25,
+        "負": [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2],
         "メモ": [""] * 25,
         "URL": [
             "https://www.bleague.jp/club_detail/?TeamID=702&tab=2",
@@ -75,8 +76,13 @@ st.markdown("---")
 col_tool1, col_tool2, col_tool3 = st.columns([1.5, 2, 1])
 
 with col_tool1:
-    # 予想データのJSONダウンロード（保存）
-    json_data = st.session_state.data[["地区", "対戦相手", "年間対戦試合数", "勝", "負", "メモ"]].to_json(orient="records", force_ascii=False)
+    # 予想データのJSONダウンロード（安全に列を確認して出力）
+    export_df = st.session_state.data.copy()
+    for col in ["地区", "対戦相手", "年間対戦試合数", "勝", "負", "メモ"]:
+        if col not in export_df.columns:
+            export_df = get_default_schedule_data()
+            break
+    json_data = export_df[["地区", "対戦相手", "年間対戦試合数", "勝", "負", "メモ"]].to_json(orient="records", force_ascii=False)
     st.download_button(
         label="💾 入力データをファイルに保存",
         data=json_data,
@@ -92,9 +98,7 @@ with col_tool2:
         try:
             loaded_list = json.load(uploaded_file)
             loaded_df = pd.DataFrame(loaded_list)
-            # 必須列が揃っているか確認して反映
-            if all(col in loaded_df.columns for col in ["勝", "メモ"]):
-                # デフォルトデータとマージしてURL等を保証
+            if all(col in loaded_df.columns for col in ["勝", "メモ", "対戦相手"]):
                 base_df = get_default_schedule_data()
                 for idx, row in loaded_df.iterrows():
                     match = base_df[base_df["対戦相手"] == row["対戦相手"]]
