@@ -182,8 +182,8 @@ st.markdown("---")
 st.markdown(
     """
     <div style="background-color: #f8fafc; padding: 20px; border-radius: 10px; border: 1px solid #e2e8f0; text-align: center;">
-        <h4 style="margin-bottom: 8px; color: #1e293b;">🎙️ ハピネッツ・トーク（YouTubeチャンネル）</h4>
-        <p style="font-size: 14px; color: #64748b; margin-bottom: 15px;">秋田ノーザンハピネッツやBリーグの最新情報をポッドキャスト・動画で配信中！チャンネル登録よろしくお願いします！</p>
+        <h4 style="margin-bottom: 8px; color: #1e293b;">ハピネッツ・トークby秋田ブースター</h4>
+        <p style="font-size: 14px; color: #64748b; margin-bottom: 15px;">ハピネッツを語るポッドキャスト 配信中！</p>
         <a href="https://www.youtube.com/channel/UCJ6na2Xp35fzf4ZM2EFCLwg" target="_blank">
             <button style="background-color: #ff0000; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 15px;">
                 🔴 YouTubeチャンネルを見る・登録する 📺
