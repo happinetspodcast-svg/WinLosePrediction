@@ -177,7 +177,24 @@ col4.metric(
     delta_color="normal" if win_diff >= 0 else "inverse"
 )
 
-# 4. シェア＆URL出力機能
+# 4. ハピネッツ・トーク YouTubeチャンネルへの誘導バナー
+st.markdown("---")
+st.markdown(
+    """
+    <div style="background-color: #f8fafc; padding: 20px; border-radius: 10px; border: 1px solid #e2e8f0; text-align: center;">
+        <h4 style="margin-bottom: 8px; color: #1e293b;">🎙️ ハピネッツ・トーク（YouTubeチャンネル）</h4>
+        <p style="font-size: 14px; color: #64748b; margin-bottom: 15px;">秋田ノーザンハピネッツやBリーグの最新情報をポッドキャスト・動画で配信中！チャンネル登録よろしくお願いします！</p>
+        <a href="https://www.youtube.com/channel/UCJ6na2Xp35fzf4ZM2EFCLwg" target="_blank">
+            <button style="background-color: #ff0000; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 15px;">
+                🔴 YouTubeチャンネルを見る・登録する 📺
+            </button>
+        </a>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# 5. シェア＆URL出力機能
 st.markdown("---")
 st.subheader("📤 あなたの予想結果をみんなにシェアしよう！")
 
@@ -203,7 +220,7 @@ with col_s2:
 
 st.text_area("📋 シェア用テキスト（コピーしてLINEやDiscord、SNSに貼れます）", value=share_text, height=140)
 
-# 5. CSVダウンロード
+# 6. CSVダウンロード
 st.markdown("---")
 csv_export = current_data[["地区", "対戦相手", "年間対戦試合数", "勝", "負", "メモ"]].to_csv(index=False).encode("utf-8-sig")
 st.download_button(
