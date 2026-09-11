@@ -12,7 +12,7 @@ st.set_page_config(
 APP_URL = "https://your-app.streamlit.app"
 
 st.title("🏀 秋田ノーザンハピネッツ 2026-27シーズン勝敗予想シミュレーター")
-st.write("各対戦相手の「勝」のセレクトボックスで勝利数を選んでください。（入力内容はブラウザに自動保存されます）")
+st.write("各対戦相手の「勝」のセレクトボックスで勝利数を選んでください。")
 
 # 1. デフォルトデータの定義
 @st.cache_data
@@ -67,26 +67,57 @@ def get_default_schedule_data():
         ]
     })
 
-# 2. ブラウザのlocalStorageと連携するJavaScriptの仕組み
-import streamlit.components.v1 as components
+if "data" not in st.session_state:
+    st.session_state.data = get_default_schedule_data()
 
-def load_saved_data():
-    # セッションステートにまだデータがない場合
-    if "data" not in st.session_state:
-        default_df = get_default_schedule_data()
-        
-        # 最初の読み込み時にブラウザのlocalStorageからデータを復元するためのJSコンポーネントを埋め込む
-        # ※Streamlitでは初期値をPython側だけで完結させるのが難しいため、保存ボタンや自動保存を組み合わせます
-        st.session_state.data = default_df
+# ツールバー（保存・読み込み・リセット）
+st.markdown("---")
+col_tool1, col_tool2, col_tool3 = st.columns([1.5, 2, 1])
 
-load_saved_data()
+with col_tool1:
+    # 予想データのJSONダウンロード（保存）
+    json_data = st.session_state.data[["地区", "対戦相手", "年間対戦試合数", "勝", "負", "メモ"]].to_json(orient="records", force_ascii=False)
+    st.download_button(
+        label="💾 入力データをファイルに保存",
+        data=json_data,
+        file_name="akita_prediction_save.json",
+        mime="application/json",
+        help="現在の勝敗予想とメモをファイルとして端末に保存します。"
+    )
 
-# ツールバー（リセットボタンなど）
-col_top1, col_top2 = st.columns([6, 1])
-with col_top2:
+with col_tool2:
+    # 保存したJSONファイルのアップロード（読み込み）
+    uploaded_file = st.file_uploader("📂 保存したファイルから復元", type=["json"], label_visibility="collapsed")
+    if uploaded_file is not None:
+        try:
+            loaded_list = json.load(uploaded_file)
+            loaded_df = pd.DataFrame(loaded_list)
+            # 必須列が揃っているか確認して反映
+            if all(col in loaded_df.columns for col in ["勝", "メモ"]):
+                # デフォルトデータとマージしてURL等を保証
+                base_df = get_default_schedule_data()
+                for idx, row in loaded_df.iterrows():
+                    match = base_df[base_df["対戦相手"] == row["対戦相手"]]
+                    if not match.empty:
+                        base_idx = match.index[0]
+                        max_g = int(base_df.loc[base_idx, "年間対戦試合数"])
+                        w = int(row["勝"])
+                        if w > max_g: w = max_g
+                        base_df.loc[base_idx, "勝"] = w
+                        base_df.loc[base_idx, "負"] = max_g - w
+                        base_df.loc[base_idx, "メモ"] = str(row["メモ"])
+                st.session_state.data = base_df
+                st.success("データを正常に復元しました！")
+                st.rerun()
+        except Exception as e:
+            st.error("ファイルの読み込みに失敗しました。")
+
+with col_tool3:
     if st.button("🔄 入力をリセット"):
         st.session_state.data = get_default_schedule_data()
         st.rerun()
+
+st.markdown("---")
 
 # 2カラムレイアウト（左：カスタム入力リスト / 右：ロスター確認パネル）
 col_left, col_right = st.columns([1.5, 1], gap="medium")
@@ -169,14 +200,14 @@ with col_right:
             memo_text = f"（メモ: {row['メモ']}）" if row['メモ'] else ""
             st.markdown(f"**{row['対戦相手']}** {memo_text} 👉 [ロスター確認 🔗]({row['URL']})", unsafe_allow_html=True)
 
-# 3. 全体の集計
+# 2. 全体の集計
 current_data = st.session_state.data
 total_games = int(current_data["年間対戦試合数"].sum())
 total_wins = int(current_data["勝"].sum())
 total_losses = int(current_data["負"].sum())
 win_rate = (total_wins / total_games * 100) if total_games > 0 else 0.0
 
-# 4. サマリー表示
+# 3. サマリー表示
 st.markdown("---")
 st.subheader("📊 2026-27シーズン 最終成績シミュレーション")
 
@@ -194,7 +225,7 @@ col4.metric(
     delta_color="normal" if win_diff >= 0 else "inverse"
 )
 
-# 5. ハピネッツ・トーク YouTubeチャンネルへの誘導バナー
+# 4. ハピネッツ・トーク YouTubeチャンネルへの誘導バナー
 st.markdown("---")
 st.markdown(
     """
@@ -211,7 +242,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 6. シェア＆URL出力機能
+# 5. シェア＆URL出力機能
 st.markdown("---")
 st.subheader("📤 あなたの予想結果をみんなにシェアしよう！")
 
@@ -237,7 +268,7 @@ with col_s2:
 
 st.text_area("📋 シェア用テキスト（コピーしてLINEやDiscord、SNSに貼れます）", value=share_text, height=140)
 
-# 7. CSVダウンロード
+# 6. CSVダウンロード
 st.markdown("---")
 csv_export = current_data[["地区", "対戦相手", "年間対戦試合数", "勝", "負", "メモ"]].to_csv(index=False).encode("utf-8-sig")
 st.download_button(
@@ -245,19 +276,4 @@ st.download_button(
     data=csv_export,
     file_name="akita_happinets_2026_27_prediction.csv",
     mime="text/csv"
-)
-
-# ブラウザのストレージに現在の勝・負・メモを自動保存するJSの仕組み
-# （Streamlitが再描画されるたびに最新の入力状況をブラウザに記録します）
-saved_dict = current_data[["勝", "メモ"]].to_dict(orient="index")
-saved_json = json.dumps(saved_dict)
-
-components.html(
-    f"""
-    <script>
-        const data = {saved_json};
-        localStorage.setItem("akita_prediction_data", JSON.stringify(data));
-    </script>
-    """,
-    height=0,
 )
