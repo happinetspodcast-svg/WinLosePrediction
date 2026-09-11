@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import urllib.parse
-import json
 
 # ページ基本設定
 st.set_page_config(
@@ -14,10 +13,10 @@ APP_URL = "https://your-app.streamlit.app"
 st.title("🏀 秋田ノーザンハピネッツ 2026-27シーズン勝敗予想シミュレーター")
 st.write("各対戦相手の「勝」のセレクトボックスで勝利数を選んでください。")
 
-# 1. デフォルトデータの定義
+# 1. データの初期化（B.PREMIER 正式な東西2地区制に対応）
 @st.cache_data
-def get_default_schedule_data():
-    return pd.DataFrame({
+def load_schedule_data():
+    df = pd.DataFrame({
         "地区": [
             "東地区", "東地区", "東地区", "東地区", "東地区", 
             "東地区", "東地区", "東地区", "東地区", "東地区", "東地区", "東地区",
@@ -37,7 +36,6 @@ def get_default_schedule_data():
             2, 2, 1, 2, 2, 2, 2
         ],
         "勝": [0] * 25,
-        "負": [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2],
         "メモ": [""] * 25,
         "URL": [
             "https://www.bleague.jp/club_detail/?TeamID=702&tab=2",
@@ -67,61 +65,11 @@ def get_default_schedule_data():
             "https://www.bleague.jp/club_detail/?TeamID=701&tab=2"
         ]
     })
+    df["負"] = df["年間対戦試合数"] - df["勝"]
+    return df
 
 if "data" not in st.session_state:
-    st.session_state.data = get_default_schedule_data()
-
-# ツールバー（保存・読み込み・リセット）
-st.markdown("---")
-col_tool1, col_tool2, col_tool3 = st.columns([1.5, 2, 1])
-
-with col_tool1:
-    # 予想データのJSONダウンロード（安全に列を確認して出力）
-    export_df = st.session_state.data.copy()
-    for col in ["地区", "対戦相手", "年間対戦試合数", "勝", "負", "メモ"]:
-        if col not in export_df.columns:
-            export_df = get_default_schedule_data()
-            break
-    json_data = export_df[["地区", "対戦相手", "年間対戦試合数", "勝", "負", "メモ"]].to_json(orient="records", force_ascii=False)
-    st.download_button(
-        label="💾 入力データをファイルに保存",
-        data=json_data,
-        file_name="akita_prediction_save.json",
-        mime="application/json",
-        help="現在の勝敗予想とメモをファイルとして端末に保存します。"
-    )
-
-with col_tool2:
-    # 保存したJSONファイルのアップロード（読み込み）
-    uploaded_file = st.file_uploader("📂 保存したファイルから復元", type=["json"], label_visibility="collapsed")
-    if uploaded_file is not None:
-        try:
-            loaded_list = json.load(uploaded_file)
-            loaded_df = pd.DataFrame(loaded_list)
-            if all(col in loaded_df.columns for col in ["勝", "メモ", "対戦相手"]):
-                base_df = get_default_schedule_data()
-                for idx, row in loaded_df.iterrows():
-                    match = base_df[base_df["対戦相手"] == row["対戦相手"]]
-                    if not match.empty:
-                        base_idx = match.index[0]
-                        max_g = int(base_df.loc[base_idx, "年間対戦試合数"])
-                        w = int(row["勝"])
-                        if w > max_g: w = max_g
-                        base_df.loc[base_idx, "勝"] = w
-                        base_df.loc[base_idx, "負"] = max_g - w
-                        base_df.loc[base_idx, "メモ"] = str(row["メモ"])
-                st.session_state.data = base_df
-                st.success("データを正常に復元しました！")
-                st.rerun()
-        except Exception as e:
-            st.error("ファイルの読み込みに失敗しました。")
-
-with col_tool3:
-    if st.button("🔄 入力をリセット"):
-        st.session_state.data = get_default_schedule_data()
-        st.rerun()
-
-st.markdown("---")
+    st.session_state.data = load_schedule_data()
 
 # 2カラムレイアウト（左：カスタム入力リスト / 右：ロスター確認パネル）
 col_left, col_right = st.columns([1.5, 1], gap="medium")
